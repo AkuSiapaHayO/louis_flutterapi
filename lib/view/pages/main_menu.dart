@@ -12,7 +12,7 @@ class _MainMenuState extends State<MainMenu> {
 
   static const List<Widget> _pages = <Widget>[
     HomePage(),
-    CostPage(),
+    ShippingCostPage(),
   ];
 
   void _onItemTapped(int index) {

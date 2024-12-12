@@ -1,43 +1,43 @@
 part of 'pages.dart';
 
-class CostPage extends StatefulWidget {
-  const CostPage({super.key});
+class ShippingCostPage extends StatefulWidget {
+  const ShippingCostPage({super.key});
 
   @override
-  State<CostPage> createState() => _CostPageState();
+  State<ShippingCostPage> createState() => _ShippingCostPageState();
 }
 
-class _CostPageState extends State<CostPage> {
-  late HomeViewmodel homeViewmodel;
-  final weightController = TextEditingController();
+class _ShippingCostPageState extends State<ShippingCostPage> {
+  late HomeViewmodel _viewModel;
+  final _weightController = TextEditingController();
 
-  dynamic selectedOriginProvince;
-  dynamic selectedDestinationProvince;
-  dynamic selectedOriginCity;
-  dynamic selectedDestinationCity;
-  String? selectedCourier;
-  List<String> couriers = ['jne', 'pos', 'tiki'];
+  dynamic _selectedOriginProvince;
+  dynamic _selectedDestinationProvince;
+  dynamic _selectedOriginCity;
+  dynamic _selectedDestinationCity;
+  String? _selectedCourier;
+  final List<String> _availableCouriers = ['jne', 'pos', 'tiki'];
 
   @override
   void initState() {
     super.initState();
-    homeViewmodel = HomeViewmodel();
-    homeViewmodel.fetchProvinceList();
+    _viewModel = HomeViewmodel();
+    _viewModel.fetchProvinceList();
   }
 
   @override
   void dispose() {
-    weightController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => homeViewmodel,
+      create: (_) => _viewModel,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Calculate Shipping Cost'),
+          title: const Text('Shipping Cost Calculator'),
           centerTitle: true,
           backgroundColor: Colors.blue,
         ),
@@ -45,49 +45,49 @@ class _CostPageState extends State<CostPage> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              _buildDropdownSection(
-                title: 'Origin',
-                selectedProvince: selectedOriginProvince,
-                selectedCity: selectedOriginCity,
-                onProvinceChanged: (newValue) {
+              _buildLocationSelector(
+                label: 'Origin',
+                selectedProvince: _selectedOriginProvince,
+                selectedCity: _selectedOriginCity,
+                onProvinceChanged: (newProvince) {
                   setState(() {
-                    selectedOriginProvince = newValue;
-                    selectedOriginCity = null;
-                    homeViewmodel.fetchOriginCityList(selectedOriginProvince!.provinceId);
+                    _selectedOriginProvince = newProvince;
+                    _selectedOriginCity = null;
+                    _viewModel.fetchOriginCityList(newProvince!.provinceId);
                   });
                 },
-                onCityChanged: (newValue) {
+                onCityChanged: (newCity) {
                   setState(() {
-                    selectedOriginCity = newValue;
+                    _selectedOriginCity = newCity;
                   });
                 },
-                cityList: homeViewmodel.originCityList,
+                cityList: _viewModel.originCityList,
               ),
               const SizedBox(height: 20),
-              _buildDropdownSection(
-                title: 'Destination',
-                selectedProvince: selectedDestinationProvince,
-                selectedCity: selectedDestinationCity,
-                onProvinceChanged: (newValue) {
+              _buildLocationSelector(
+                label: 'Destination',
+                selectedProvince: _selectedDestinationProvince,
+                selectedCity: _selectedDestinationCity,
+                onProvinceChanged: (newProvince) {
                   setState(() {
-                    selectedDestinationProvince = newValue;
-                    selectedDestinationCity = null;
-                    homeViewmodel.fetchDestinationCityList(selectedDestinationProvince!.provinceId);
+                    _selectedDestinationProvince = newProvince;
+                    _selectedDestinationCity = null;
+                    _viewModel.fetchDestinationCityList(newProvince!.provinceId);
                   });
                 },
-                onCityChanged: (newValue) {
+                onCityChanged: (newCity) {
                   setState(() {
-                    selectedDestinationCity = newValue;
+                    _selectedDestinationCity = newCity;
                   });
                 },
-                cityList: homeViewmodel.destinationCityList,
+                cityList: _viewModel.destinationCityList,
               ),
               const SizedBox(height: 20),
-              _buildWeightAndCourierSection(),
+              _buildWeightAndCourierInputs(),
               const SizedBox(height: 20),
               _buildCalculateButton(),
               const SizedBox(height: 20),
-              _buildResultSection(),
+              _buildCostResultSection(),
             ],
           ),
         ),
@@ -95,8 +95,8 @@ class _CostPageState extends State<CostPage> {
     );
   }
 
-  Widget _buildDropdownSection({
-    required String title,
+  Widget _buildLocationSelector({
+    required String label,
     required dynamic selectedProvince,
     required dynamic selectedCity,
     required Function(dynamic) onProvinceChanged,
@@ -109,25 +109,25 @@ class _CostPageState extends State<CostPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '$title Province',
+              '$label Province',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             _buildProvinceDropdown(
               selectedProvince: selectedProvince,
-              provinceList: viewModel.provinceList,
+              provinces: viewModel.provinceList,
               onChanged: onProvinceChanged,
             ),
             const SizedBox(height: 10),
             if (selectedProvince != null) ...[
               Text(
-                '$title City',
+                '$label City',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               _buildCityDropdown(
                 selectedCity: selectedCity,
-                cityList: cityList,
+                cities: cityList,
                 onChanged: onCityChanged,
               ),
             ],
@@ -139,19 +139,19 @@ class _CostPageState extends State<CostPage> {
 
   Widget _buildProvinceDropdown({
     required dynamic selectedProvince,
-    required ApiResponse<List<Province>> provinceList,
+    required ApiResponse<List<Province>> provinces,
     required Function(dynamic) onChanged,
   }) {
-    if (provinceList.status == Status.loading) {
+    if (provinces.status == Status.loading) {
       return const Center(child: CircularProgressIndicator());
-    } else if (provinceList.status == Status.error) {
-      return Center(child: Text(provinceList.message ?? 'Error loading provinces'));
-    } else if (provinceList.status == Status.completed) {
+    } else if (provinces.status == Status.error) {
+      return Center(child: Text(provinces.message ?? 'Error fetching provinces'));
+    } else if (provinces.status == Status.completed) {
       return DropdownButton<dynamic>(
         isExpanded: true,
         value: selectedProvince,
         hint: const Text('Select Province'),
-        items: provinceList.data!.map((province) {
+        items: provinces.data!.map((province) {
           return DropdownMenuItem(
             value: province,
             child: Text(province.province ?? ''),
@@ -165,19 +165,19 @@ class _CostPageState extends State<CostPage> {
 
   Widget _buildCityDropdown({
     required dynamic selectedCity,
-    required ApiResponse<List<City>> cityList,
+    required ApiResponse<List<City>> cities,
     required Function(dynamic) onChanged,
   }) {
-    if (cityList.status == Status.loading) {
+    if (cities.status == Status.loading) {
       return const Center(child: CircularProgressIndicator());
-    } else if (cityList.status == Status.error) {
-      return Center(child: Text(cityList.message ?? 'Error loading cities'));
-    } else if (cityList.status == Status.completed) {
+    } else if (cities.status == Status.error) {
+      return Center(child: Text(cities.message ?? 'Error fetching cities'));
+    } else if (cities.status == Status.completed) {
       return DropdownButton<dynamic>(
         isExpanded: true,
         value: selectedCity,
         hint: const Text('Select City'),
-        items: cityList.data!.map((city) {
+        items: cities.data!.map((city) {
           return DropdownMenuItem(
             value: city,
             child: Text('${city.cityName} (${city.type})'),
@@ -189,17 +189,17 @@ class _CostPageState extends State<CostPage> {
     return Container();
   }
 
-  Widget _buildWeightAndCourierSection() {
+  Widget _buildWeightAndCourierInputs() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Weight (in grams)',
+          'Weight (grams)',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
         TextField(
-          controller: weightController,
+          controller: _weightController,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
             hintText: 'Enter weight',
@@ -214,9 +214,9 @@ class _CostPageState extends State<CostPage> {
         const SizedBox(height: 10),
         DropdownButton<String>(
           isExpanded: true,
-          value: selectedCourier,
+          value: _selectedCourier,
           hint: const Text('Select Courier'),
-          items: couriers.map((courier) {
+          items: _availableCouriers.map((courier) {
             return DropdownMenuItem(
               value: courier,
               child: Text(courier.toUpperCase()),
@@ -224,7 +224,7 @@ class _CostPageState extends State<CostPage> {
           }).toList(),
           onChanged: (value) {
             setState(() {
-              selectedCourier = value;
+              _selectedCourier = value;
             });
           },
         ),
@@ -233,41 +233,41 @@ class _CostPageState extends State<CostPage> {
   }
 
   Widget _buildCalculateButton() {
-    final canCalculate = selectedOriginCity != null &&
-        selectedDestinationCity != null &&
-        selectedCourier != null &&
-        weightController.text.isNotEmpty;
+    final isReadyToCalculate = _selectedOriginCity != null &&
+        _selectedDestinationCity != null &&
+        _selectedCourier != null &&
+        _weightController.text.isNotEmpty;
 
     return ElevatedButton(
-      onPressed: canCalculate
+      onPressed: isReadyToCalculate
           ? () {
-              homeViewmodel.calculateCost(
-                origin: selectedOriginCity!.cityId,
-                destination: selectedDestinationCity!.cityId,
-                weight: int.parse(weightController.text),
-                courier: selectedCourier!,
+              _viewModel.calculateCost(
+                origin: _selectedOriginCity!.cityId,
+                destination: _selectedDestinationCity!.cityId,
+                weight: int.parse(_weightController.text),
+                courier: _selectedCourier!,
               );
             }
           : null,
       style: ElevatedButton.styleFrom(
-        backgroundColor: canCalculate ? Colors.blue : Colors.grey,
+        backgroundColor: isReadyToCalculate ? Colors.blue : Colors.grey,
       ),
       child: const Text('Calculate Cost'),
     );
   }
 
-  Widget _buildResultSection() {
+  Widget _buildCostResultSection() {
     return Consumer<HomeViewmodel>(
       builder: (context, viewModel, _) {
         if (viewModel.costResult.status == Status.loading) {
           return const Center(child: CircularProgressIndicator());
         } else if (viewModel.costResult.status == Status.error) {
-          return Center(child: Text(viewModel.costResult.message ?? 'Error fetching cost'));
+          return Center(child: Text(viewModel.costResult.message ?? 'Error fetching cost')); 
         } else if (viewModel.costResult.status == Status.completed) {
-          final costs = viewModel.costResult.data?.costs;
-          if (costs != null && costs.isNotEmpty) {
+          final costDetails = viewModel.costResult.data?.costs;
+          if (costDetails != null && costDetails.isNotEmpty) {
             return Column(
-              children: costs.map((cost) {
+              children: costDetails.map((cost) {
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8.0),
                   child: ListTile(
